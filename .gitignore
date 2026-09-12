@@ -1,0 +1,6 @@
+# Gerado automaticamente pela Action de deploy — não precisa versionar
+last-updated.json
+
+# SO
+.DS_Store
+Thumbs.db
