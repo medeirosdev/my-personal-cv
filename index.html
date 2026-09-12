@@ -6,6 +6,7 @@
 <script>
   if ('scrollRestoration' in history) { history.scrollRestoration = 'manual'; }
   if (location.hash) { history.replaceState(null, '', location.pathname + location.search); }
+  window.addEventListener('pageshow', function () { window.scrollTo(0, 0); });
 </script>
 <title>Guilherme de Medeiros Ellena — Resume</title>
 <meta name="description" content="Resume of Guilherme de Medeiros Ellena — Software Developer & Undergraduate Researcher.">
