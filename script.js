@@ -18,7 +18,7 @@
       download_aria: 'Download PDF',
       fallback_date: 'see PDF',
       schedule_panel_title: 'Weekly Schedule',
-      schedule_hint: 'All times in Brasília time (UTC-3). Fixed commitments only — subject to change.',
+      schedule_hint: 'All times in Brasília time (UTC-3). Fixed commitments only, updated weekly — subject to change.',
       schedule_days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
     },
     pt: {
@@ -38,7 +38,7 @@
       download_aria: 'Baixar PDF',
       fallback_date: 'ver PDF',
       schedule_panel_title: 'Agenda Semanal',
-      schedule_hint: 'Todos os horários em horário de Brasília (UTC-3). Apenas compromissos fixos — sujeito a mudanças.',
+      schedule_hint: 'Todos os horários em horário de Brasília (UTC-3). Apenas compromissos fixos, atualizados semanalmente — sujeito a mudanças.',
       schedule_days: ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'],
     },
   };
