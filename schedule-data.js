@@ -18,4 +18,6 @@ window.SCHEDULE_EVENTS = [
   { day: 'mon', start: 13, end: 14, label: 'Reunião de Pesquisa (13:20)', color: 'teal' },
   { day: 'tue', start: 21, end: 22, label: 'Reunião de Pesquisa', color: 'teal' },
   { day: 'wed', start: 13, end: 17, label: 'Pesquisa', color: 'teal' },
+
+  { day: 'mon', start: 16, end: 18, label: 'Aula de Física', color: 'amber' },
 ];
