@@ -5,6 +5,7 @@
       title: 'Guilherme de Medeiros Ellena — Resume',
       description: 'Resume of Guilherme de Medeiros Ellena — Software Developer & Undergraduate Researcher.',
       nav_resume: 'Resume',
+      nav_schedule: 'Schedule',
       nav_download: 'Download PDF',
       eyebrow: 'Software Developer & Undergraduate Researcher',
       hero_lead: 'Researcher and developer with experience in scientific instrumentation, computer vision, machine learning, and fullstack development. Undergraduate student in Applied and Computational Mathematics at UNICAMP, with active research at CNPEM/LNLS and as a collaborating researcher at Recod.ai.',
@@ -16,11 +17,15 @@
       iframe_title: 'Resume PDF viewer',
       download_aria: 'Download PDF',
       fallback_date: 'see PDF',
+      schedule_panel_title: 'Weekly Schedule',
+      schedule_hint: 'All times in Brasília time (UTC-3). Fixed commitments only — subject to change.',
+      schedule_days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
     },
     pt: {
       title: 'Guilherme de Medeiros Ellena — Currículo',
       description: 'Currículo de Guilherme de Medeiros Ellena — Desenvolvedor de Software & Pesquisador de Graduação.',
       nav_resume: 'Currículo',
+      nav_schedule: 'Agenda',
       nav_download: 'Baixar PDF',
       eyebrow: 'Desenvolvedor de Software & Pesquisador de Graduação',
       hero_lead: 'Pesquisador e desenvolvedor com experiência em instrumentação científica, visão computacional, machine learning e desenvolvimento fullstack. Graduando em Matemática Aplicada e Computacional na UNICAMP, com pesquisa ativa no CNPEM/LNLS e como pesquisador colaborador no Recod.ai.',
@@ -32,6 +37,9 @@
       iframe_title: 'Visualizador do currículo em PDF',
       download_aria: 'Baixar PDF',
       fallback_date: 'ver PDF',
+      schedule_panel_title: 'Agenda Semanal',
+      schedule_hint: 'Todos os horários em horário de Brasília (UTC-3). Apenas compromissos fixos — sujeito a mudanças.',
+      schedule_days: ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'],
     },
   };
 
@@ -87,6 +95,8 @@
     const dateEl = document.getElementById('last-updated');
     if (dateEl) dateEl.textContent = formatDate(lastUpdatedISO, lang) || t.fallback_date;
 
+    if (typeof window.renderSchedule === 'function') window.renderSchedule(t.schedule_days);
+
     try { localStorage.setItem('cv-lang', lang); } catch (e) { /* storage unavailable */ }
   }
 
@@ -108,6 +118,79 @@
       } catch (e) { /* storage unavailable */ }
       applyLanguage(initialLang);
     });
+})();
+
+// ---------- Weekly schedule grid ----------
+(function () {
+  const grid = document.getElementById('schedule-grid');
+  if (!grid) return;
+
+  const DAY_KEYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+  const START_HOUR = 6;
+  const END_HOUR = 24;
+  const HOURS = END_HOUR - START_HOUR; // 18 hourly rows
+
+  // JS Date.getDay(): 0=Sun..6=Sat — map to our Monday-first index (0=Mon..6=Sun).
+  const todayIndex = (new Date().getDay() + 6) % 7;
+
+  function hourLabel(h) {
+    const hh = Math.floor(h) % 24;
+    return `${String(hh).padStart(2, '0')}:00`;
+  }
+
+  window.renderSchedule = function (dayLabels) {
+    grid.innerHTML = '';
+    const frag = document.createDocumentFragment();
+
+    const corner = document.createElement('div');
+    corner.className = 'sg-corner';
+    frag.appendChild(corner);
+
+    dayLabels.forEach((label, i) => {
+      const el = document.createElement('div');
+      el.className = 'sg-day-header' + (i === todayIndex ? ' is-today' : '');
+      el.style.gridColumn = String(i + 2);
+      el.textContent = label;
+      frag.appendChild(el);
+    });
+
+    for (let h = 0; h < HOURS; h++) {
+      const label = document.createElement('div');
+      label.className = 'sg-hour';
+      label.style.gridRow = String(h + 2);
+      label.textContent = hourLabel(START_HOUR + h);
+      frag.appendChild(label);
+
+      for (let d = 0; d < 7; d++) {
+        const cell = document.createElement('div');
+        cell.className = 'sg-cell' + (d === todayIndex ? ' is-today-col' : '');
+        cell.style.gridColumn = String(d + 2);
+        cell.style.gridRow = String(h + 2);
+        frag.appendChild(cell);
+      }
+    }
+
+    const events = Array.isArray(window.SCHEDULE_EVENTS) ? window.SCHEDULE_EVENTS : [];
+    events.forEach((ev) => {
+      const dayIdx = DAY_KEYS.indexOf(ev.day);
+      if (dayIdx === -1) return;
+      const start = Math.max(START_HOUR, Math.round(Number(ev.start)));
+      const end = Math.min(END_HOUR, Math.round(Number(ev.end)));
+      if (!(end > start)) return;
+
+      const block = document.createElement('div');
+      block.className = 'sg-event' + (ev.color ? ` color-${ev.color}` : '');
+      block.style.gridColumn = String(dayIdx + 2);
+      block.style.gridRow = `${start - START_HOUR + 2} / ${end - START_HOUR + 2}`;
+      const text = document.createElement('span');
+      text.textContent = ev.label || '';
+      block.title = ev.label || '';
+      block.appendChild(text);
+      frag.appendChild(block);
+    });
+
+    grid.appendChild(frag);
+  };
 })();
 
 // ---------- Three.js background (loss-landscape wireframe) ----------

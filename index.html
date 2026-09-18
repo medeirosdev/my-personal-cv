@@ -27,6 +27,7 @@
   <a href="#top" class="brand">GM</a>
   <nav class="topnav">
     <a href="#cv" data-i18n="nav_resume">Resume</a>
+    <a href="#schedule" data-i18n="nav_schedule">Schedule</a>
     <a href="https://github.com/medeirosdev" target="_blank" rel="noopener">GitHub</a>
     <a href="#" id="download-nav-link" data-i18n="nav_download" download>Download PDF</a>
     <div class="lang-switch" role="group" aria-label="Language">
@@ -100,6 +101,21 @@
     <p class="cv-hint" id="cv-hint" data-i18n-html="cv_hint">Can't see the PDF? <a href="cv.pdf" target="_blank" rel="noopener">Open it in a new tab</a> or download the file above.</p>
   </section>
 
+  <section class="schedule-section" id="schedule">
+    <div class="cv-panel schedule-panel">
+      <div class="cv-panel-bar">
+        <div class="cv-panel-title">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          <span data-i18n="schedule_panel_title">Weekly Schedule</span>
+        </div>
+      </div>
+      <div class="schedule-scroll">
+        <div class="schedule-grid" id="schedule-grid"></div>
+      </div>
+    </div>
+    <p class="cv-hint" data-i18n="schedule_hint">All times in Brasília time (UTC-3). Fixed commitments only — subject to change.</p>
+  </section>
+
 </main>
 
 <footer class="footer">
@@ -109,6 +125,7 @@
 </footer>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="schedule-data.js"></script>
 <script src="script.js"></script>
 </body>
 </html>
