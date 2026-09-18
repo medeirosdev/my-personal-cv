@@ -14,6 +14,12 @@ Site pessoal para visualizar e baixar meu currículo, publicado no GitHub Pages.
 3. Pronto. A GitHub Action (`.github/workflows/deploy.yml`) publica o site automaticamente e atualiza
    a data "Atualizado em" com base no último commit que alterou `cv.pdf` — nada mais precisa ser editado.
 
+## Como editar a agenda semanal
+
+Os compromissos fixos ficam no arquivo `schedule-data.js` (não no HTML). Edite a lista `SCHEDULE_EVENTS`
+seguindo os comentários do próprio arquivo (dia, hora de início/fim em formato 24h, texto e cor), depois
+commit e push normalmente. A grade (segunda a domingo, 06h-00h) é montada automaticamente pelo `script.js`.
+
 ## Configuração inicial do GitHub Pages (uma única vez)
 
 No repositório, em **Settings → Pages → Build and deployment → Source**, selecione **GitHub Actions**.
