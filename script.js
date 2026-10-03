@@ -21,6 +21,7 @@
       schedule_hint: 'All times in Brasília time (UTC-3). Fixed commitments plus this week\'s one-off events, updated weekly — subject to change.',
       schedule_days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
       upcoming_title: 'Upcoming events',
+      margin_line: (s, e, until) => `Margin: +${s} min to start · +${e} min to end (until ${until})`,
     },
     pt: {
       title: 'Guilherme de Medeiros Ellena — Currículo',
@@ -42,6 +43,7 @@
       schedule_hint: 'Todos os horários em horário de Brasília (UTC-3). Compromissos fixos mais os eventos avulsos da semana, atualizados semanalmente — sujeito a mudanças.',
       schedule_days: ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'],
       upcoming_title: 'Próximos eventos',
+      margin_line: (s, e, until) => `Margem: +${s} min no início · +${e} min no fim (até ${until})`,
     },
   };
 
@@ -97,7 +99,7 @@
     const dateEl = document.getElementById('last-updated');
     if (dateEl) dateEl.textContent = formatDate(lastUpdatedISO, lang) || t.fallback_date;
 
-    if (typeof window.renderSchedule === 'function') window.renderSchedule(t.schedule_days);
+    if (typeof window.renderSchedule === 'function') window.renderSchedule(t.schedule_days, t.margin_line);
     if (typeof window.renderUpcoming === 'function') window.renderUpcoming(lang, t.upcoming_title);
 
     try { localStorage.setItem('cv-lang', lang); } catch (e) { /* storage unavailable */ }
@@ -145,7 +147,49 @@
     return `${String(hh).padStart(2, '0')}:00`;
   }
 
-  window.renderSchedule = function (dayLabels) {
+  // Accepts a whole hour (13) or an exact 'HH:MM' string ('13:30'); returns minutes.
+  function toMinutes(v) {
+    if (typeof v === 'string' && v.includes(':')) {
+      const [h, m] = v.split(':').map(Number);
+      return h * 60 + (m || 0);
+    }
+    return Math.round(Number(v) * 60);
+  }
+
+  function fmtMinutes(min) {
+    const h = Math.floor(min / 60) % 24;
+    const m = min % 60;
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+  }
+
+  // Floating tooltip (one shared element).
+  const tip = document.createElement('div');
+  tip.className = 'sg-tooltip';
+  tip.hidden = true;
+  document.body.appendChild(tip);
+  function showTip(block) {
+    tip.innerHTML = '';
+    const lines = JSON.parse(block.dataset.tip);
+    lines.forEach((text, i) => {
+      const el = document.createElement('div');
+      el.className = i === 0 ? 'sg-tooltip-title' : i === 1 ? 'sg-tooltip-time' : 'sg-tooltip-margin';
+      el.textContent = text;
+      tip.appendChild(el);
+    });
+    tip.hidden = false;
+    const r = block.getBoundingClientRect();
+    const tr = tip.getBoundingClientRect();
+    let left = r.left + r.width / 2 - tr.width / 2;
+    left = Math.max(8, Math.min(left, window.innerWidth - tr.width - 8));
+    let top = r.top - tr.height - 8;
+    if (top < 8) top = r.bottom + 8;
+    tip.style.left = `${left + window.scrollX}px`;
+    tip.style.top = `${top + window.scrollY}px`;
+  }
+  function hideTip() { tip.hidden = true; }
+  window.addEventListener('scroll', hideTip, { passive: true });
+
+  window.renderSchedule = function (dayLabels, marginLine) {
     grid.innerHTML = '';
     const frag = document.createDocumentFragment();
 
@@ -183,8 +227,10 @@
       .map((ev) => ({
         ev,
         dayIdx: DAY_KEYS.indexOf(ev.day),
-        start: Math.max(START_HOUR, Math.round(Number(ev.start))),
-        end: Math.min(END_HOUR, Math.round(Number(ev.end))),
+        startMin: toMinutes(ev.start),
+        endMin: toMinutes(ev.end),
+        start: Math.max(START_HOUR, Math.floor(toMinutes(ev.start) / 60)),
+        end: Math.min(END_HOUR, Math.ceil(toMinutes(ev.end) / 60)),
       }))
       .filter((e) => e.dayIdx !== -1 && e.end > e.start);
 
@@ -212,7 +258,9 @@
       if (cluster.length) flush();
     }
 
-    events.forEach(({ ev, dayIdx, start, end, lane, lanes }) => {
+    const margin = Object.assign({ start: 0, end: 10 }, window.SCHEDULE_MARGIN || {});
+
+    events.forEach(({ ev, dayIdx, start, end, startMin, endMin, lane, lanes }) => {
       const block = document.createElement('div');
       block.className = 'sg-event' + (ev.color ? ` color-${ev.color}` : '');
       block.style.gridColumn = String(dayIdx + 2);
@@ -226,7 +274,18 @@
       }
       const text = document.createElement('span');
       text.textContent = ev.label || '';
-      block.title = ev.label || '';
+      const mStart = ev.marginStart ?? margin.start;
+      const mEnd = ev.marginEnd ?? margin.end;
+      block.dataset.tip = JSON.stringify([
+        ev.label || '',
+        `${fmtMinutes(startMin)} – ${fmtMinutes(endMin)}`,
+        marginLine ? marginLine(mStart, mEnd, fmtMinutes(endMin + mEnd)) : '',
+      ].filter(Boolean));
+      block.tabIndex = 0;
+      block.addEventListener('mouseenter', () => showTip(block));
+      block.addEventListener('mouseleave', hideTip);
+      block.addEventListener('focus', () => showTip(block));
+      block.addEventListener('blur', hideTip);
       block.appendChild(text);
       frag.appendChild(block);
     });
