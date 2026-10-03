@@ -20,7 +20,7 @@ window.SCHEDULE_EVENTS = [
   { day: 'thu', start: 8, end: 12, label: 'Trabalho', color: 'accent' },
   { day: 'fri', start: 8, end: 12, label: 'Trabalho', color: 'accent' },
 
-  { day: 'mon', start: 13, end: 14, label: 'Reunião de Pesquisa (13:20)', color: 'teal' },
+  { day: 'thu', start: 13, end: 14, label: 'Reunião IC HUC (13:30)', color: 'teal' },
   { day: 'tue', start: 21, end: 22, label: 'Reunião de Pesquisa', color: 'teal' },
   { day: 'wed', start: 13, end: 17, label: 'Pesquisa', color: 'teal' },
 
@@ -30,7 +30,6 @@ window.SCHEDULE_EVENTS = [
   { day: 'mon', start: 13, end: 14, label: 'Reunião IC (13:30)', color: 'rose', until: '2026-10-11' },
   { day: 'mon', start: 14, end: 15, label: 'Entrevista (14:00–14:45)', color: 'rose', until: '2026-10-11' },
   { day: 'wed', start: 19, end: 20, label: 'Reunião PW', color: 'rose', until: '2026-10-11' },
-  { day: 'thu', start: 13, end: 14, label: 'Reunião IC (13:30)', color: 'rose', until: '2026-10-11' },
 ];
 
 // Events outside the current week — listed below the grid, hidden once past.
