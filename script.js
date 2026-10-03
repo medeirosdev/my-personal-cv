@@ -18,8 +18,9 @@
       download_aria: 'Download PDF',
       fallback_date: 'see PDF',
       schedule_panel_title: 'Weekly Schedule',
-      schedule_hint: 'All times in Brasília time (UTC-3). Fixed commitments only, updated weekly — subject to change.',
+      schedule_hint: 'All times in Brasília time (UTC-3). Fixed commitments plus this week\'s one-off events, updated weekly — subject to change.',
       schedule_days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+      upcoming_title: 'Upcoming events',
     },
     pt: {
       title: 'Guilherme de Medeiros Ellena — Currículo',
@@ -38,8 +39,9 @@
       download_aria: 'Baixar PDF',
       fallback_date: 'ver PDF',
       schedule_panel_title: 'Agenda Semanal',
-      schedule_hint: 'Todos os horários em horário de Brasília (UTC-3). Apenas compromissos fixos, atualizados semanalmente — sujeito a mudanças.',
+      schedule_hint: 'Todos os horários em horário de Brasília (UTC-3). Compromissos fixos mais os eventos avulsos da semana, atualizados semanalmente — sujeito a mudanças.',
       schedule_days: ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'],
+      upcoming_title: 'Próximos eventos',
     },
   };
 
@@ -96,6 +98,7 @@
     if (dateEl) dateEl.textContent = formatDate(lastUpdatedISO, lang) || t.fallback_date;
 
     if (typeof window.renderSchedule === 'function') window.renderSchedule(t.schedule_days);
+    if (typeof window.renderUpcoming === 'function') window.renderUpcoming(lang, t.upcoming_title);
 
     try { localStorage.setItem('cv-lang', lang); } catch (e) { /* storage unavailable */ }
   }
@@ -132,6 +135,10 @@
 
   // JS Date.getDay(): 0=Sun..6=Sat — map to our Monday-first index (0=Mon..6=Sun).
   const todayIndex = (new Date().getDay() + 6) % 7;
+
+  function todayISO() {
+    return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
+  }
 
   function hourLabel(h) {
     const hh = Math.floor(h) % 24;
@@ -170,18 +177,53 @@
       }
     }
 
-    const events = Array.isArray(window.SCHEDULE_EVENTS) ? window.SCHEDULE_EVENTS : [];
-    events.forEach((ev) => {
-      const dayIdx = DAY_KEYS.indexOf(ev.day);
-      if (dayIdx === -1) return;
-      const start = Math.max(START_HOUR, Math.round(Number(ev.start)));
-      const end = Math.min(END_HOUR, Math.round(Number(ev.end)));
-      if (!(end > start)) return;
+    const today = todayISO();
+    const events = (Array.isArray(window.SCHEDULE_EVENTS) ? window.SCHEDULE_EVENTS : [])
+      .filter((ev) => !ev.until || today <= ev.until)
+      .map((ev) => ({
+        ev,
+        dayIdx: DAY_KEYS.indexOf(ev.day),
+        start: Math.max(START_HOUR, Math.round(Number(ev.start))),
+        end: Math.min(END_HOUR, Math.round(Number(ev.end))),
+      }))
+      .filter((e) => e.dayIdx !== -1 && e.end > e.start);
 
+    // Overlapping events on the same day are laid out side by side in lanes.
+    for (let d = 0; d < 7; d++) {
+      const dayEvents = events.filter((e) => e.dayIdx === d).sort((a, b) => a.start - b.start || a.end - b.end);
+      let cluster = [];
+      let clusterEnd = -1;
+      const flush = () => {
+        const laneEnds = [];
+        cluster.forEach((e) => {
+          let lane = laneEnds.findIndex((end) => end <= e.start);
+          if (lane === -1) { lane = laneEnds.length; laneEnds.push(0); }
+          laneEnds[lane] = e.end;
+          e.lane = lane;
+        });
+        cluster.forEach((e) => { e.lanes = laneEnds.length; });
+        cluster = [];
+      };
+      dayEvents.forEach((e) => {
+        if (cluster.length && e.start >= clusterEnd) flush();
+        cluster.push(e);
+        clusterEnd = Math.max(clusterEnd, e.end);
+      });
+      if (cluster.length) flush();
+    }
+
+    events.forEach(({ ev, dayIdx, start, end, lane, lanes }) => {
       const block = document.createElement('div');
       block.className = 'sg-event' + (ev.color ? ` color-${ev.color}` : '');
       block.style.gridColumn = String(dayIdx + 2);
       block.style.gridRow = `${start - START_HOUR + 2} / ${end - START_HOUR + 2}`;
+      if (lanes > 1) {
+        block.style.width = `calc((100% - 8px) / ${lanes} - 2px)`;
+        block.style.marginLeft = `calc(4px + (100% - 8px) * ${lane} / ${lanes})`;
+        block.style.marginRight = '0';
+        block.style.justifySelf = 'start';
+        block.style.padding = '6px 5px';
+      }
       const text = document.createElement('span');
       text.textContent = ev.label || '';
       block.title = ev.label || '';
@@ -190,6 +232,54 @@
     });
 
     grid.appendChild(frag);
+  };
+
+  // ---------- Upcoming events list ----------
+  window.renderUpcoming = function (lang, title) {
+    const box = document.getElementById('upcoming');
+    if (!box) return;
+    const today = todayISO();
+    const locale = lang === 'pt' ? 'pt-BR' : 'en-US';
+    const items = (Array.isArray(window.UPCOMING_EVENTS) ? window.UPCOMING_EVENTS : [])
+      .map((ev) => {
+        const days = ev.dates ? ev.dates.slice().sort() : [ev.start, ev.end || ev.start];
+        return { ev, first: days[0], last: days[days.length - 1] };
+      })
+      .filter((e) => e.first && e.last >= today)
+      .sort((a, b) => (a.first < b.first ? -1 : 1));
+
+    box.innerHTML = '';
+    box.hidden = items.length === 0;
+    if (!items.length) return;
+
+    const fmt = (iso) => new Date(iso + 'T12:00:00').toLocaleDateString(locale,
+      lang === 'pt' ? { day: '2-digit', month: '2-digit' } : { month: 'short', day: 'numeric' });
+    const h = document.createElement('h3');
+    h.className = 'upcoming-title';
+    h.textContent = title;
+    box.appendChild(h);
+
+    const ul = document.createElement('ul');
+    ul.className = 'upcoming-list';
+    items.forEach(({ ev }) => {
+      let when;
+      if (ev.dates) {
+        const parts = ev.dates.slice().sort().map(fmt);
+        when = parts.length > 1 ? parts.slice(0, -1).join(', ') + (lang === 'pt' ? ' e ' : ' & ') + parts[parts.length - 1] : parts[0];
+      } else {
+        when = ev.end && ev.end !== ev.start ? `${fmt(ev.start)} – ${fmt(ev.end)}` : fmt(ev.start);
+      }
+      const li = document.createElement('li');
+      const d = document.createElement('span');
+      d.className = 'upcoming-date';
+      d.textContent = when;
+      const l = document.createElement('span');
+      l.className = 'upcoming-label';
+      l.textContent = ev.label || '';
+      li.append(d, l);
+      ul.appendChild(li);
+    });
+    box.appendChild(ul);
   };
 })();
 
