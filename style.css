@@ -317,7 +317,7 @@ main{ position: relative; z-index: 1; }
 /* ---------- Schedule ---------- */
 
 .schedule-section{
-  max-width: 960px;
+  max-width: 1320px;
   margin: 0 auto;
   padding: 0 24px 120px;
   display: flex;
@@ -336,9 +336,9 @@ main{ position: relative; z-index: 1; }
   --row-h: 44px;
   --time-col: 56px;
   display: grid;
-  grid-template-columns: var(--time-col) repeat(7, minmax(92px, 1fr));
+  grid-template-columns: var(--time-col) repeat(7, minmax(120px, 1fr));
   grid-template-rows: 36px repeat(18, var(--row-h));
-  min-width: 720px;
+  min-width: 900px;
   background: var(--surface-1);
 }
 
