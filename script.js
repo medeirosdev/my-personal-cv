@@ -21,6 +21,8 @@
       schedule_hint: 'All times in Brasília time (UTC-3). Fixed commitments plus this week\'s one-off events, updated weekly — subject to change.',
       schedule_days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
       upcoming_title: 'Upcoming events',
+      schedule_empty: 'No commitments on this day.',
+      margin_short: (s, e, until) => `Margin +${s}/+${e} min · ends by ${until}`,
       margin_line: (s, e, until) => `Margin: +${s} min to start · +${e} min to end (until ${until})`,
     },
     pt: {
@@ -43,6 +45,8 @@
       schedule_hint: 'Todos os horários em horário de Brasília (UTC-3). Compromissos fixos mais os eventos avulsos da semana, atualizados semanalmente — sujeito a mudanças.',
       schedule_days: ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'],
       upcoming_title: 'Próximos eventos',
+      schedule_empty: 'Sem compromissos neste dia.',
+      margin_short: (s, e, until) => `Margem +${s}/+${e} min · termina até ${until}`,
       margin_line: (s, e, until) => `Margem: +${s} min no início · +${e} min no fim (até ${until})`,
     },
   };
@@ -99,7 +103,7 @@
     const dateEl = document.getElementById('last-updated');
     if (dateEl) dateEl.textContent = formatDate(lastUpdatedISO, lang) || t.fallback_date;
 
-    if (typeof window.renderSchedule === 'function') window.renderSchedule(t.schedule_days, t.margin_line);
+    if (typeof window.renderSchedule === 'function') window.renderSchedule(t.schedule_days, t.margin_line, t.schedule_empty, t.margin_short);
     if (typeof window.renderUpcoming === 'function') window.renderUpcoming(lang, t.upcoming_title);
 
     try { localStorage.setItem('cv-lang', lang); } catch (e) { /* storage unavailable */ }
@@ -189,7 +193,80 @@
   function hideTip() { tip.hidden = true; }
   window.addEventListener('scroll', hideTip, { passive: true });
 
-  window.renderSchedule = function (dayLabels, marginLine) {
+  let mobileDay = todayIndex;
+  const mobile = document.getElementById('schedule-mobile');
+
+  function renderMobile(dayLabels, events, marginLine, emptyText, margin) {
+    if (!mobile) return;
+    mobile.innerHTML = '';
+
+    const tabs = document.createElement('div');
+    tabs.className = 'sm-tabs';
+    tabs.setAttribute('role', 'tablist');
+    dayLabels.forEach((label, i) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'sm-tab' + (i === mobileDay ? ' is-active' : '') + (i === todayIndex ? ' is-today' : '');
+      b.setAttribute('role', 'tab');
+      b.setAttribute('aria-selected', String(i === mobileDay));
+      const name = document.createElement('span');
+      name.textContent = label;
+      b.appendChild(name);
+      const dot = document.createElement('i');
+      dot.className = 'sm-dot' + (events.some((e) => e.dayIdx === i) ? '' : ' is-empty');
+      b.appendChild(dot);
+      b.addEventListener('click', () => { mobileDay = i; renderMobile(dayLabels, events, marginLine, emptyText, margin); });
+      tabs.appendChild(b);
+    });
+    mobile.appendChild(tabs);
+
+    const list = document.createElement('div');
+    list.className = 'sm-list';
+    list.setAttribute('role', 'tabpanel');
+    const dayEvents = events.filter((e) => e.dayIdx === mobileDay).sort((a, b) => a.startMin - b.startMin);
+    if (!dayEvents.length) {
+      const empty = document.createElement('p');
+      empty.className = 'sm-empty';
+      empty.textContent = emptyText;
+      list.appendChild(empty);
+    }
+    dayEvents.forEach(({ ev, startMin, endMin }) => {
+      const mStart = ev.marginStart ?? margin.start;
+      const mEnd = ev.marginEnd ?? margin.end;
+      const card = document.createElement('div');
+      card.className = 'sm-event' + (ev.color ? ` color-${ev.color}` : '');
+      const time = document.createElement('div');
+      time.className = 'sm-time';
+      time.textContent = `${fmtMinutes(startMin)} – ${fmtMinutes(endMin)}`;
+      const label = document.createElement('div');
+      label.className = 'sm-label';
+      label.textContent = (ev.label || '').replace(/\s*\(\d{1,2}:\d{2}[^)]*\)\s*$/, '');
+      card.append(time, label);
+      if (marginLine) {
+        const m = document.createElement('div');
+        m.className = 'sm-margin';
+        m.textContent = marginLine(mStart, mEnd, fmtMinutes(endMin + mEnd));
+        card.appendChild(m);
+      }
+      list.appendChild(card);
+    });
+
+    // Swipe left/right to change day.
+    let x0 = null, y0 = null;
+    list.addEventListener('touchstart', (e) => { x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; }, { passive: true });
+    list.addEventListener('touchend', (e) => {
+      if (x0 === null) return;
+      const dx = e.changedTouches[0].clientX - x0;
+      const dy = e.changedTouches[0].clientY - y0;
+      x0 = null;
+      if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+      mobileDay = (mobileDay + (dx < 0 ? 1 : 6)) % 7;
+      renderMobile(dayLabels, events, marginLine, emptyText, margin);
+    });
+    mobile.appendChild(list);
+  }
+
+  window.renderSchedule = function (dayLabels, marginLine, emptyText, marginShort) {
     grid.innerHTML = '';
     const frag = document.createDocumentFragment();
 
@@ -291,6 +368,7 @@
     });
 
     grid.appendChild(frag);
+    renderMobile(dayLabels, events, marginShort || marginLine, emptyText, margin);
   };
 
   // ---------- Upcoming events list ----------
