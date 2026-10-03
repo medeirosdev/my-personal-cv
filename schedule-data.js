@@ -26,7 +26,7 @@ window.SCHEDULE_EVENTS = [
   { day: 'thu', start: 8, end: 12, label: 'Trabalho', color: 'accent' },
   { day: 'fri', start: 8, end: 12, label: 'Trabalho', color: 'accent' },
 
-  { day: 'thu', start: '13:30', end: '14:30', label: 'Reunião IC HUC (13:30)', color: 'teal' },
+  { day: 'thu', start: '13:30', end: '14:00', marginEnd: 0, label: 'Reunião IC HUC (13:30)', color: 'teal' },
   { day: 'tue', start: 21, end: 22, label: 'Reunião de Pesquisa', color: 'teal' },
   { day: 'wed', start: 13, end: 17, label: 'Pesquisa', color: 'teal' },
 
